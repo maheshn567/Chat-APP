@@ -11,7 +11,7 @@ import getJwtSecret from '../../utilities/jwtSecret.js';
         req.user = verfiyToken;
         next();
     } catch (error) {
-        res.status(401).json({message:"unauthorized",error})
+        res.status(401).json({message:"unauthorized"})
     }
 }
 

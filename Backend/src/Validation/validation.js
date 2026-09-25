@@ -3,13 +3,13 @@ import z from 'zod';
 // Schema for registration payload
 export const registerSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters long").trim(),
-    email: z.string().email("Invalid email format").trim(),
+    email: z.string().trim().toLowerCase().email("Invalid email format"),
     password: z.string().min(6, "Password must be at least 6 characters long")
 });
 
 // Schema for login payload
 export const loginSchema = z.object({
-    email: z.string().email("Invalid email format").trim(),
+    email: z.string().trim().toLowerCase().email("Invalid email format"),
     password: z.string().min(1, "Password is required")
 });
 
@@ -73,13 +73,13 @@ export const validate = (schemas) => {
             next();
         } catch (error) {
             if (error instanceof z.ZodError) {
-                const errorMessages = error.errors.map((err) => ({
+                const errorMessages = error.issues.map((err) => ({
                     field: err.path.join('.'),
                     message: err.message
                 }));
                 return res.status(400).json({
                     success: false,
-                    message: "Validation failed",
+                    message: errorMessages[0]?.message || "Validation failed",
                     errors: errorMessages
                 });
             }

@@ -9,7 +9,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 // instances. Storing prisma on `global` prevents exhausting DB connections.
 const globalForPrisma = global;
 
-const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter, omit: { user: { password: true } } });
 
 if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = prisma;

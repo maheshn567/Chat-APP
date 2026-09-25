@@ -1,4 +1,5 @@
 import prisma from '../../db/index.js'
+import bcrypt from 'bcryptjs';
 import createJWT from '../../utilities/jwtCreate.js';
 
 export default async function register(req, res) {
@@ -14,14 +15,14 @@ export default async function register(req, res) {
             }
         });
         if (user) {
-            return res.status(400).json({ message: "user already exists" });
+            return res.status(409).json({ message: "User already exists" });
         }
 
         const result = await prisma.user.create({
             data: {
                 username,
                 email,
-                password
+                password: await bcrypt.hash(password, 10)
             }
         });
 
@@ -31,6 +32,6 @@ export default async function register(req, res) {
         res.status(201).json({ message: "user created successfully", result });
     } catch (err) {
         console.log(`error at register ${err}`);
-        res.status(500).json({ message: "Internal server error", err });
+        res.status(500).json({ message: "Internal server error" });
     }
 }
