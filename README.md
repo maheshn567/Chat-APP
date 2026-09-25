@@ -72,7 +72,7 @@ cd Backend
 npm install
 ```
 
-Create `Backend/.env`:
+Copy `Backend/.env.example` to `Backend/.env` and fill it in (Cloudinary keys come from your dashboard under Settings → API Keys):
 
 ```env
 PORT=3000
@@ -84,16 +84,17 @@ API_SECRET="your_cloudinary_api_secret"
 ```
 
 ```bash
-npx prisma migrate dev
+npx prisma migrate deploy
 npm run dev                # http://localhost:3000
 
 # 2. Frontend (new terminal)
 cd Frontend
 npm install
+cp .env.example .env       # points the app at http://localhost:3000/api
 npm run dev                # http://localhost:5173
 ```
 
-Register two accounts in two browser windows to see real-time features working.
+Open http://localhost:5173 (the backend only allows that origin). Register two accounts in two browser windows to see real-time features working.
 
 ---
 
