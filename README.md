@@ -1,4 +1,4 @@
-# 💬 SereneChat
+# 💬 chat_app
 
 **A full-stack, real-time chat app: direct messages, group rooms, live presence, reactions and file sharing.**
 
@@ -12,7 +12,7 @@
 [![Zod](https://img.shields.io/badge/Zod-validation-3068B7?logo=zod&logoColor=white)](https://zod.dev/)
 
 <!-- TODO: add a demo GIF (10–15s: send message → typing indicator → reaction → file upload) -->
-<!-- ![SereneChat demo](docs/demo.gif) -->
+<!-- ![chat_app demo](docs/demo.gif) -->
 <!-- 🔗 **Live demo:** https://your-deployment-url -->
 
 ---
@@ -103,7 +103,7 @@ Register two accounts in two browser windows to see real-time features working.
 <summary><b>📁 Project structure</b></summary>
 
 ```text
-SereneChat/
+chat_app/
 ├── Backend/
 │   ├── app.js                  # Express app, CORS, routes, upload endpoint
 │   ├── server.js               # HTTP + Socket.io server entry point
