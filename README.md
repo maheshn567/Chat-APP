@@ -15,8 +15,8 @@ https://github.com/user-attachments/assets/5f6323ba-9525-4bed-a30b-d5346b69687e
 [![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Zod](https://img.shields.io/badge/Zod-validation-3068B7?logo=zod&logoColor=white)](https://zod.dev/)
 
-<!-- TODO: add a demo GIF (10–15s: send message → typing indicator → reaction → file upload) -->
-<!-- ![chat_app demo](docs/demo.gif) -->
+https://github.com/user-attachments/assets/5f6323ba-9525-4bed-a30b-d5346b69687e
+
 <!-- 🔗 **Live demo:** https://your-deployment-url -->
 
 ---
