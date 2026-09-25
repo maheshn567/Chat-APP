@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/5f6323ba-9525-4bed-a30b-d5346b69687e
+
 # 💬 chat_app
 
 **A full-stack, real-time chat app: direct messages, group rooms, live presence, reactions and file sharing.**
