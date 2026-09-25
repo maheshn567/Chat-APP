@@ -1,0 +1,52 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Production & Build outputs
+dist/
+build/
+**/dist/
+**/build/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Archive & Zip files
+*.zip
+*.tar.gz
+*.rar
+
+# Design files & mockups
+design/
+stitch_minimalist_blue_messenger/
+
+# Logs & Diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDEs & Editor metadata
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+
+# OS System Files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Database & Storage temporary files
+*.sqlite
+*.sqlite-journal

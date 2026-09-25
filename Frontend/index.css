@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  /* Clarity Dark Theme Mappings */
+  --color-brand-primary: #2563eb;
+  --color-brand-on-primary: #ffffff;
+  
+  --color-brand-background: #020617;
+  --color-brand-surface: #0f172a;
+  --color-brand-surface-container: #1e293b;
+  --color-brand-surface-container-high: #334155;
+  
+  --color-brand-on-surface: #f8fafc;
+  --color-brand-on-surface-variant: #94a3b8;
+  
+  --color-brand-outline: #475569;
+  --color-brand-outline-variant: #1e293b;
+
+  /* Typography */
+  --font-geist: "Geist", ui-sans-serif, system-ui, sans-serif;
+  
+  /* Radii */
+  --radius-brand-sm: 4px;
+  --radius-brand-md: 8px;
+  --radius-brand-lg: 12px;
+  --radius-brand-xl: 16px;
+  --radius-brand-2xl: 24px;
+}
+
+body {
+  background: 
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.7) 0px, transparent 50%),
+    linear-gradient(135deg, #0a0f1d 0%, #020617 100%);
+  background-attachment: fixed;
+  color: var(--color-brand-on-surface);
+  font-family: var(--font-geist);
+}
+
+.bg-brand-background {
+  background: 
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.7) 0px, transparent 50%),
+    linear-gradient(135deg, #0a0f1d 0%, #020617 100%) !important;
+}
+
+.bg-brand-surface {
+  background: 
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.06) 0px, transparent 50%),
+    linear-gradient(135deg, #0f172a 0%, #090d16 100%) !important;
+}
+
+/* Custom scrollbars for clean panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
