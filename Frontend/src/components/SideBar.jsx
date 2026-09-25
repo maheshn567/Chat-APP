@@ -336,7 +336,7 @@ export default function SideBar() {
                         title="Create Group"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M17 14v6m-3-3h6M6 10a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H2v-2a5 5 0 015-5h4a5 5 0 015 5v2h-7zM15 4.13a4 4 0 010 7.74M12.5 7a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z" />
                         </svg>
                     </button>
                 </nav>
