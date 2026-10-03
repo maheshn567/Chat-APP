@@ -2,7 +2,40 @@ import prisma from "../../db/index.js";
 import socketAuth from "./socketAuth.js";
 
 export default function initializeSockets(io) {
-    const userSocket = new Map();
+    // userId -> Set of socket ids, so several tabs/devices count as one online user
+    const presence = new Map();
+
+    const onlineUserIds = () => Array.from(presence.keys());
+
+    // Removes this socket from presence. Returns true if it was the user's last one.
+    const removePresence = (userId, socketId) => {
+        const sockets = presence.get(userId);
+        if (!sockets || !sockets.delete(socketId)) {
+            return false;
+        }
+        if (sockets.size === 0) {
+            presence.delete(userId);
+            return true;
+        }
+        return false;
+    };
+
+    const markOffline = async (userId) => {
+        const lastSeenTime = new Date();
+        try {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { lastSeen: lastSeenTime }
+            });
+        } catch (e) {
+            console.log("Error updating lastSeen for disconnected user:", e);
+        }
+        io.emit("userStatusChanged", {
+            userId,
+            status: "offline",
+            lastSeen: lastSeenTime
+        });
+    };
 
     io.use(socketAuth);
 
@@ -10,9 +43,18 @@ export default function initializeSockets(io) {
         const me = socket.data.user.id;
         console.log("new connection:", socket.id, me);
 
-        userSocket.set(me, socket.id);
-        io.emit("userStatusChanged", { userId: me, status: "online" });
-        socket.emit("onlineUsersList", Array.from(userSocket.keys()));
+        // Private room reaching every tab of this user (DMs, file notifications).
+        socket.join(`user:${me}`);
+
+        const isFirstSocket = !presence.has(me);
+        if (isFirstSocket) {
+            presence.set(me, new Set());
+        }
+        presence.get(me).add(socket.id);
+        if (isFirstSocket) {
+            io.emit("userStatusChanged", { userId: me, status: "online" });
+        }
+        socket.emit("onlineUsersList", onlineUserIds());
 
         socket.on("sendFile", (groupId = '', userId = '', fileUrl, fileType, filename, messageId = null) => {
             const payload = {
@@ -27,10 +69,7 @@ export default function initializeSockets(io) {
             if (groupId) {
                 socket.to(groupId).emit('newFile', payload);
             } else if (userId) {
-                const recipientSocketId = userSocket.get(userId);
-                if (recipientSocketId) {
-                    io.to(recipientSocketId).emit('newFile', payload);
-                }
+                io.to(`user:${userId}`).emit('newFile', payload);
             }
         });
 
@@ -41,23 +80,23 @@ export default function initializeSockets(io) {
         // Identity now comes from the handshake. `join` is kept as a no-op that
         // only re-sends the online list so older clients that still emit it keep working.
         socket.on("join", () => {
-            socket.emit("onlineUsersList", Array.from(userSocket.keys()));
+            socket.emit("onlineUsersList", onlineUserIds());
         });
 
         socket.on("logout", () => {
-            if (userSocket.get(me) === socket.id) {
-                userSocket.delete(me);
+            if (removePresence(me, socket.id)) {
+                markOffline(me);
             }
+            socket.disconnect(true);
         });
 
         socket.on("getOnlineUsers", () => {
-            socket.emit("onlineUsersList", Array.from(userSocket.keys()));
+            socket.emit("onlineUsersList", onlineUserIds());
         });
 
         socket.on('sendMessage', async ({ userId, message, chatId, messageId }) => {
             if (userId) {
-                const recipientSocketId = userSocket.get(userId);
-                if (recipientSocketId) {
+                if (presence.has(userId)) {
                     if (messageId) {
                         await prisma.message.update({
                             where: { id: messageId },
@@ -65,7 +104,7 @@ export default function initializeSockets(io) {
                         }).catch(e => console.log(e));
                     }
 
-                    io.to(recipientSocketId).emit('receiveMessage', {
+                    io.to(`user:${userId}`).emit('receiveMessage', {
                         from: me,
                         message,
                         chatId,
@@ -188,27 +227,10 @@ export default function initializeSockets(io) {
             }
         });
 
-        socket.on("disconnect", async () => {
-            if (userSocket.get(me) !== socket.id) {
-                return;
+        socket.on("disconnect", () => {
+            if (removePresence(me, socket.id)) {
+                markOffline(me);
             }
-            userSocket.delete(me);
-
-            const lastSeenTime = new Date();
-            try {
-                await prisma.user.update({
-                    where: { id: me },
-                    data: { lastSeen: lastSeenTime }
-                });
-            } catch (e) {
-                console.log("Error updating lastSeen for disconnected user:", e);
-            }
-
-            io.emit("userStatusChanged", {
-                userId: me,
-                status: "offline",
-                lastSeen: lastSeenTime
-            });
         });
     });
 }
