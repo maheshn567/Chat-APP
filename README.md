@@ -101,8 +101,9 @@ Backend/
     controller/           register, login, getMe, chat and message logic
     middleware/           JWT cookie check
     Validation/           Zod schemas and validate() middleware
-    services/             Cloudinary and Multer
-    sockets/socket.js     Socket.io event handlers
+    services/             Cloudinary and Multer, shared chat access check
+    sockets/              socketAuth.js (handshake auth), socket.js (event handlers)
+  scripts/                socket-auth-check.mjs
 Frontend/
   Main.jsx, App.jsx       entry point and router
   socket.js               Socket.io client
@@ -152,6 +153,7 @@ All routes are under `/api`. Everything except register and login requires the a
 | `joinRoom`, `leaveRoom` | client to server | Enter a chat room (membership checked, acknowledged with `{ ok }`) or leave it |
 | `socket_error` | server to client | An event was rejected, with `{ event, message }` |
 | `sendMessage`, `receiveMessage` | both | Send and receive a message |
+| `message` | both | Global room chat, sent as `{ chatId, text }` |
 | `sendFile`, `newFile` | both | Share an uploaded file |
 | `typing` | both | Typing indicator |
 | `messageReaction`, `messageReactionUpdated` | both | Reaction changes |
