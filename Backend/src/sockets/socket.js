@@ -1,15 +1,23 @@
 import prisma from "../../db/index.js";
+import socketAuth from "./socketAuth.js";
 
 export default function initializeSockets(io) {
     const userSocket = new Map();
 
+    io.use(socketAuth);
+
     io.on("connection", (socket) => {
-        console.log("new connection:", socket.id);
+        const me = socket.data.user.id;
+        console.log("new connection:", socket.id, me);
+
+        userSocket.set(me, socket.id);
+        io.emit("userStatusChanged", { userId: me, status: "online" });
+        socket.emit("onlineUsersList", Array.from(userSocket.keys()));
 
         socket.on("sendFile", (groupId = '', userId = '', fileUrl, fileType, filename, messageId = null) => {
             const payload = {
                 id: messageId,
-                from: socket.userId,
+                from: me,
                 chatId: groupId || null,
                 fileUrl,
                 fileType,
@@ -27,37 +35,19 @@ export default function initializeSockets(io) {
         });
 
         socket.on("message", (msg) => {
-            io.emit("message", { from: socket.userId, text: msg });
+            io.emit("message", { from: me, text: msg });
         });
 
-        let joinedUserId = null;
-
-        socket.on("join", (user) => {
-            if (user && user.id) {
-                if (socket.userId && socket.userId !== user.id) {
-                    userSocket.delete(socket.userId);
-                }
-                joinedUserId = user.id;
-                socket.userId = user.id;
-                userSocket.set(user.id, socket.id);
-                console.log(`User mapped: ${user.username} (${user.id}) => ${socket.id}`);
-
-                io.emit("userStatusChanged", {
-                    userId: user.id,
-                    status: "online"
-                });
-
-                socket.emit("onlineUsersList", Array.from(userSocket.keys()));
-            }
+        // Identity now comes from the handshake. `join` is kept as a no-op that
+        // only re-sends the online list so older clients that still emit it keep working.
+        socket.on("join", () => {
+            socket.emit("onlineUsersList", Array.from(userSocket.keys()));
         });
 
         socket.on("logout", () => {
-            if (socket.userId) {
-                userSocket.delete(socket.userId);
-                console.log(`User logged out and unmapped: ${socket.userId}`);
-                socket.userId = null;
+            if (userSocket.get(me) === socket.id) {
+                userSocket.delete(me);
             }
-            joinedUserId = null;
         });
 
         socket.on("getOnlineUsers", () => {
@@ -76,7 +66,7 @@ export default function initializeSockets(io) {
                     }
 
                     io.to(recipientSocketId).emit('receiveMessage', {
-                        from: socket.userId,
+                        from: me,
                         message,
                         chatId,
                         id: messageId,
@@ -85,7 +75,7 @@ export default function initializeSockets(io) {
                 }
             } else if (chatId) {
                 socket.to(chatId).emit('receiveMessage', {
-                    from: socket.userId,
+                    from: me,
                     message,
                     chatId,
                     id: messageId,
@@ -127,29 +117,29 @@ export default function initializeSockets(io) {
         });
 
         socket.on('typing', ({ chatId, isTyping }) => {
-            if (chatId && socket.userId) {
+            if (chatId && me) {
                 socket.to(chatId).emit('typing', {
                     chatId,
-                    userId: socket.userId,
+                    userId: me,
                     isTyping
                 });
             }
         });
 
         socket.on('readAllMessages', async ({ chatId }) => {
-            if (chatId && socket.userId) {
+            if (chatId && me) {
                 try {
                     await prisma.message.updateMany({
                         where: {
                             chatId: chatId,
-                            userId: { not: socket.userId },
+                            userId: { not: me },
                             status: { not: "read" }
                         },
                         data: {
                             status: "read"
                         }
                     });
-                    io.to(chatId).emit('messagesRead', { chatId, userId: socket.userId });
+                    io.to(chatId).emit('messagesRead', { chatId, userId: me });
                 } catch (err) {
                     console.log("Error in readAllMessages:", err);
                 }
@@ -199,28 +189,26 @@ export default function initializeSockets(io) {
         });
 
         socket.on("disconnect", async () => {
-            if (joinedUserId) {
-                userSocket.delete(joinedUserId);
-                console.log(`User unmapped: ${joinedUserId}`);
-
-                const lastSeenTime = new Date();
-                try {
-                    await prisma.user.update({
-                        where: { id: joinedUserId },
-                        data: { lastSeen: lastSeenTime }
-                    });
-                } catch (e) {
-                    console.log("Error updating lastSeen for disconnected user:", e);
-                }
-
-                io.emit("userStatusChanged", {
-                    userId: joinedUserId,
-                    status: "offline",
-                    lastSeen: lastSeenTime
-                });
-            } else {
-                console.log("disconnected:", socket.id);
+            if (userSocket.get(me) !== socket.id) {
+                return;
             }
+            userSocket.delete(me);
+
+            const lastSeenTime = new Date();
+            try {
+                await prisma.user.update({
+                    where: { id: me },
+                    data: { lastSeen: lastSeenTime }
+                });
+            } catch (e) {
+                console.log("Error updating lastSeen for disconnected user:", e);
+            }
+
+            io.emit("userStatusChanged", {
+                userId: me,
+                status: "offline",
+                lastSeen: lastSeenTime
+            });
         });
     });
 }
