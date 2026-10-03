@@ -156,6 +156,10 @@ export default function Chat() {
     }, [chatId, user, navigate]);
 
     useEffect(() => {
+        socket.on("socket_error", (err) => {
+            console.warn("socket error:", err);
+        });
+
         socket.on("connect", () => {
             console.log("socket connected:", socket.id);
         });
@@ -295,15 +299,12 @@ export default function Chat() {
             }
         });
 
-        if (user) {
-            socket.emit("join", user);
-        }
-
         if (chatId) {
             socket.emit("joinRoom", chatId);
         }
 
         return () => {
+            socket.off("socket_error");
             socket.off("connect");
             socket.off("message");
             socket.off("receiveMessage");
@@ -371,7 +372,7 @@ export default function Chat() {
                     setMessages((prev) => [...prev, savedMsg]);
 
                     if (selectedUserId && !isGroup) {
-                        socket.emit("sendFile", '', selectedUserId, url, type, filename, savedMsg.id);
+                        socket.emit("sendFile", chatId, '', url, type, filename, savedMsg.id);
                     } else if (isGroup) {
                         socket.emit("sendFile", chatId, '', url, type, filename, savedMsg.id);
                     }
@@ -401,7 +402,6 @@ export default function Chat() {
 
                 if (selectedUserId && !isGroup) {
                     socket.emit("sendMessage", { 
-                        userId: selectedUserId, 
                         message: currentInput, 
                         chatId: chatId, 
                         messageId: savedMsg.id 
@@ -413,7 +413,7 @@ export default function Chat() {
                         messageId: savedMsg.id 
                     });
                 } else {
-                    socket.emit("message", currentInput);
+                    socket.emit("message", { chatId, text: currentInput });
                 }
             } else {
                 setError(res.message || "Failed to send message");
@@ -503,8 +503,6 @@ export default function Chat() {
 
                 socket.emit("messageReaction", {
                     messageId,
-                    userId: user.id,
-                    username: user.username,
                     emoji,
                     action: res.action,
                     chatId

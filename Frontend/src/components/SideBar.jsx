@@ -194,6 +194,7 @@ export default function SideBar() {
     const handleLogOut = async () => {
         await logOut();
         socket.emit("logout");
+        socket.disconnect();
         setUser(null);
         navigate('/login');
     };

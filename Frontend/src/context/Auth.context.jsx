@@ -1,5 +1,6 @@
 import { useEffect, createContext, useState } from "react";
 import { getMe } from "../apis/login.api";
+import socket from "../../socket.js";
 
 // Create and export the context so other components can consume it via useContext(AuthContext)
 export const AuthContext = createContext();
@@ -26,6 +27,14 @@ export const AuthContextProvider = ({ children }) => {
         }
         fetchUser();
     }, []);
+
+    // Connect the socket once a user is logged in. The server authenticates it
+    // from the auth cookie, so it must not connect before login.
+    useEffect(() => {
+        if (user && !socket.connected) {
+            socket.connect();
+        }
+    }, [user]);
 
     return (
         <AuthContext.Provider value={{ user, setUser, loading }}>
