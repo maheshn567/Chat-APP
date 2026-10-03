@@ -23,7 +23,7 @@ const io = new Server(httpServer, {
     cors: {
         origin: "http://localhost:5173",
         credentials: true
-    },maxHttpBufferSize:1e8
+    },maxHttpBufferSize:1e6
 });
 
 app.post("/api/upload", authMiddleware, upload.single('file'), handleUpload);

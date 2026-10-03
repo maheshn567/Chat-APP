@@ -1,4 +1,4 @@
-# chat_app
+# Chat App
 
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
@@ -32,11 +32,11 @@ https://github.com/user-attachments/assets/5f6323ba-9525-4bed-a30b-d5346b69687e
 ## How it works
 
 1. A user registers or logs in over REST. The server hashes the password with bcrypt, and on login it sets a JWT in an HTTP-only cookie that lasts 7 days.
-2. After login the client opens a Socket.io connection and emits `join` with the user's id. The server stores a map of user id to socket id, which is how it finds the recipient of a direct message.
-3. To send a message, the client saves it through `POST /api/chats/:chatId/messages` and then emits `sendMessage`. For a direct message the server forwards it to the recipient's socket and marks it `delivered` if the recipient is online. For a group message it emits to the Socket.io room named after the chat id.
+2. After login the client opens a Socket.io connection. The server authenticates it at the handshake from the same HTTP-only cookie, so the user's identity never comes from a client payload. Each user joins a private room named `user:<id>` that reaches all of their tabs, and presence is tracked per user as a set of sockets. A chat room can only be joined with `joinRoom`, which checks chat membership in the database, and every other chat event requires the socket to be in that room.
+3. To send a message, the client saves it through `POST /api/chats/:chatId/messages` and then emits `sendMessage`. For a direct message the server works out the recipient from the chat, forwards it to their private room and marks it `delivered` if they are online. For a group message it emits to the Socket.io room named after the chat id.
 4. The recipient's client emits `readAllMessages` or `readMessageSingle` when the chat is open. The server updates the message status in PostgreSQL and notifies the sender.
 5. Files are uploaded to `POST /api/upload`, which stores them in Cloudinary and returns a URL. The URL is then sent as a message over the socket.
-6. When a socket disconnects, the server removes it from the map, writes `lastSeen` to the database and broadcasts `userStatusChanged`.
+6. When a user's last socket disconnects, the server writes `lastSeen` to the database and broadcasts `userStatusChanged`.
 
 ## Features
 
@@ -72,11 +72,20 @@ Frontend, in a second terminal:
 ```bash
 cd Frontend
 npm install
-cp .env.example .env    # sets VITE_BASE_URL=http://localhost:3000/api
+cp .env.example .env
 npm run dev             # http://localhost:5173
 ```
 
+| Variable | Description |
+| :-- | :-- |
+| `VITE_BASE_URL` | REST API base URL, `http://localhost:3000/api` by default |
+| `VITE_SOCKET_URL` | Socket.io server URL, `http://localhost:3000` by default |
+
 The backend only accepts requests from `http://localhost:5173`. To try the real-time features, register two users and log in to each in a separate browser window.
+
+### Socket check script
+
+With the backend running, `node scripts/socket-auth-check.mjs` (run from `Backend/`) registers three throwaway users and checks that a connection without a cookie is rejected, that a non-member cannot join or affect another pair's DM room, and that presence stays correct with two tabs open. It prints PASS or FAIL for each check and exits non-zero on any failure. Set `BASE_URL` to test a server that is not on `http://localhost:3000`. It creates users in whatever database the backend is using, so point the backend at a development database.
 
 ## Project structure
 
@@ -138,8 +147,10 @@ All routes are under `/api`. Everything except register and login requires the a
 
 | Event | Direction | Purpose |
 | :-- | :-- | :-- |
-| `join`, `logout` | client to server | Register or remove the user's socket |
-| `joinRoom`, `leaveRoom` | client to server | Enter or leave a chat room |
+| `logout` | client to server | Remove the socket from presence and disconnect it |
+| `join` | client to server | No-op that re-sends the online list; kept for older clients |
+| `joinRoom`, `leaveRoom` | client to server | Enter a chat room (membership checked, acknowledged with `{ ok }`) or leave it |
+| `socket_error` | server to client | An event was rejected, with `{ event, message }` |
 | `sendMessage`, `receiveMessage` | both | Send and receive a message |
 | `sendFile`, `newFile` | both | Share an uploaded file |
 | `typing` | both | Typing indicator |
@@ -152,9 +163,9 @@ All routes are under `/api`. Everything except register and login requires the a
 
 ## Known limitations
 
-- The socket connection is not authenticated. The `join` event trusts the user id sent by the client, so a client could register as another user. The REST API is protected by the JWT cookie, but the socket handlers are not.
-- Edit, delete and reaction events are relayed to the room without being checked against the database on the socket path. The database is only updated through the REST endpoints.
+- Edit, delete and reaction events are checked against the database before they are relayed, but the database is still only changed through the REST endpoints. The socket events only tell other clients about a change that already happened.
+- Rooms are joined once per page effect and are not restored automatically when a socket reconnects, so after a dropped connection the open chat has to be reopened to receive live events.
 - The allowed CORS origin (`http://localhost:5173`) is hardcoded in [Backend/app.js](Backend/app.js), so deploying elsewhere needs a code change.
-- There are no automated tests and no CI.
+- The only automated check is the socket script above. There is no unit or integration test suite and no CI.
 - Message history is loaded in full for a chat. There is no pagination.
 - The `Chat` table has a `userId` creator column that is also set for direct chats, so the meaning of "creator" is only clear for groups.
